@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<!-- ros2 pkg create で作る ament_python パッケージの雛形に、依存を追記したもの -->
+<package format="3">
+  <name>crane_pp</name>
+  <version>0.0.1</version>
+  <description>CRANE+ V2 pick and place with SmolVLA (Flow Matching) on Gazebo</description>
+  <maintainer email="37301982+nyossa@users.noreply.github.com">nyossa</maintainer>
+  <license>Apache-2.0</license>
+
+  <!-- ノード（demo.py / infer.py）が使うメッセージ -->
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
+  <!-- sim.launch.py が include する公式シミュレーション -->
+  <exec_depend>crane_plus_gazebo</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

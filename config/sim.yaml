@@ -1,0 +1,58 @@
+# ==============================================================
+# デモ収集・データ変換・推論で共通に使う設定（1か所に集約）
+#   読み込み元: crane_pp/demo.py, crane_pp/infer.py, scripts/rosbag2lerobot.py
+#   置き場・カメラの位置は Gazebo の world に書く必要があるため
+#   ros2_ws/src/crane_pp/worlds/pick_place.sdf 側に置いている。
+# ==============================================================
+
+# --- ブロックの初期位置 [m]（Gazebo の world 座標）-------------
+# demo.py / infer.py の開始時に、ブロックをこの位置へ戻してからエピソードを始める
+# （デモ収集と推論で同じ初期条件にするため）。pick_place.sdf の red_block の初期 pose と同じ値にしておく。
+block_pose: [0.0, -0.1, 1.045]
+
+# --- 関節名 ---------------------------------------------------
+# state / action はこの順番の 5 次元 [joint1, joint2, joint3, joint4, gripper]。
+# /joint_states の並び順は保証されないため、必ず名前で並べ替えて使う。
+arm_joints: [crane_plus_joint1, crane_plus_joint2, crane_plus_joint3, crane_plus_joint4]
+gripper_joint: crane_plus_joint_hand
+
+# --- トピック -------------------------------------------------
+# 指令（action）はアームとグリッパで別のコントローラに送る
+arm_topic: /crane_plus_arm_controller/joint_trajectory
+gripper_topic: /crane_plus_gripper_controller/joint_trajectory
+# 状態（state）
+joint_states_topic: /joint_states
+# 俯瞰カメラ画像（sim.launch.py の bridge が Gazebo の image_raw を中継する）
+image_topic: /image_raw
+
+# --- 学習まわり -----------------------------------------------
+# VLM に渡すタスク文（学習と推論で同じ文字列を使う）
+task: "pick up the red block and place it on the green target"
+# データセットのサンプリング周波数 [Hz]
+fps: 10
+# 1 回の推論で予測・実行する action 数（10 step = 1 秒ぶん）
+chunk_size: 10
+
+# --- グリッパの開閉値 [rad] -----------------------------------
+# physicalai_teleop の teleop_keyboard.py と同じ値（-30 deg / +10 deg）
+gripper_open: -0.5236
+gripper_close: 0.1745
+
+# --- デモ軌道のウェイポイント ---------------------------------
+# 各行: [joint1, joint2, joint3, joint4, gripper, 到達までの秒数]
+# 直前のウェイポイントから線形補間して 20Hz で指令する（demo.py）。
+# 関節角は crane_plus_examples/pick_and_place.cpp と同じく、ブロック(0, -0.1)を
+# 真上から掴む姿勢（link4 を (0, -0.09, 0.14) に置く）を URDF の寸法から逆運動学で求めた値。
+# Gazebo で掴めない場合はここの値を調整する。
+# 置き場はブロックと原点対称の (0, +0.1) なので joint1 の符号だけが違う。
+waypoints:
+  - [0.0,     0.0,    0.0,    0.0,    -0.5236, 1.0]  # 初期姿勢（直立）・グリッパを開く
+  - [-1.5708, -0.026, -1.429, -1.739, -0.5236, 3.0]  # ブロックの真上（link4 高さ 0.17）
+  - [-1.5708, -0.029, -1.754, -1.417, -0.5236, 2.0]  # 下降（link4 高さ 0.14）
+  - [-1.5708, -0.029, -1.754, -1.417, 0.1745,  1.0]  # グリッパを閉じて掴む
+  - [-1.5708, -0.026, -1.429, -1.739, 0.1745,  2.0]  # 持ち上げ
+  - [1.5708,  -0.026, -1.429, -1.739, 0.1745,  4.0]  # 置き場の真上へ旋回
+  - [1.5708,  -0.041, -1.658, -1.524, 0.1745,  2.0]  # 下降（link4 高さ 0.15。少し上で離す）
+  - [1.5708,  -0.041, -1.658, -1.524, -0.5236, 1.0]  # グリッパを開いて置く
+  - [1.5708,  -0.026, -1.429, -1.739, -0.5236, 1.5]  # 真上へ退避
+  - [0.0,     0.0,    0.0,    0.0,    -0.5236, 3.0]  # 初期姿勢へ戻る

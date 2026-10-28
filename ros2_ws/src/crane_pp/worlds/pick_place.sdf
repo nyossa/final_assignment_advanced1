@@ -1,0 +1,152 @@
+<?xml version="1.0" ?>
+<!--
+  ピック&プレース用の world。
+  crane_plus_gazebo/worlds/table.sdf をベースに、赤ブロック・緑の置き場・俯瞰カメラを追加した。
+  ロボットは sim.launch.py により原点・高さ 1.015（テーブル天板）に置かれる。
+-->
+<sdf version="1.9">
+  <world name="default">
+    <!-- 物理: 1ms 刻み。重い場合は real_time_factor を下げる -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+    <!-- 以下3つは table.sdf と同じ（物理・GUI 操作/set_pose サービス・描画配信） -->
+    <plugin
+      filename="ignition-gazebo-physics-system"
+      name="ignition::gazebo::systems::Physics">
+    </plugin>
+    <plugin
+      filename="ignition-gazebo-user-commands-system"
+      name="ignition::gazebo::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="ignition-gazebo-scene-broadcaster-system"
+      name="ignition::gazebo::systems::SceneBroadcaster">
+    </plugin>
+    <!-- カメラを動かすためのセンサシステム（crane_plus.gazebo.xacro の use_camera 時と同じ設定） -->
+    <plugin
+      filename="ignition-gazebo-sensors-system"
+      name="ignition::gazebo::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <!-- 太陽・地面・テーブル（table.sdf と同じ） -->
+    <include>
+      <uri>
+        https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Sun
+      </uri>
+    </include>
+
+    <include>
+      <uri>
+        https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Ground%20Plane
+      </uri>
+    </include>
+
+    <include>
+      <uri>
+        https://fuel.ignitionrobotics.org/1.0/OpenRobotics/models/Table
+      </uri>
+      <pose>0.29 0 0 0 0 1.5708</pose>
+    </include>
+
+    <!--
+      掴む対象の赤ブロック（5cm 角）。
+      位置は table.sdf の aruco_cube_0 と同じ (0, -0.1)。pick_and_place.cpp で掴めることが確認されている位置。
+      サイズ・質量・摩擦も aruco_cube_0 と同じ。
+      エピソード開始時は demo.py / infer.py が config/sim.yaml の block_pose へ戻すので、pose はそれと同じ値にしておく。
+    -->
+    <model name="red_block">
+      <pose>0 -0.1 1.045 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.05</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>1 0 0 1</ambient>
+            <diffuse>1 0 0 1</diffuse>
+          </material>
+        </visual>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.05 0.05 0.05</size>
+            </box>
+          </geometry>
+          <surface>
+            <friction>
+              <ode>
+                <mu>0.9</mu>
+                <mu2>0.9</mu2>
+              </ode>
+            </friction>
+          </surface>
+        </collision>
+        <inertial>
+          <inertia>
+            <ixx>0.00002</ixx>
+            <iyy>0.00002</iyy>
+            <izz>0.00002</izz>
+          </inertia>
+          <mass>0.05</mass>
+        </inertial>
+      </link>
+    </model>
+
+    <!--
+      置き場（緑の薄い板）。見た目だけで当たり判定は持たせない（ブロックはテーブルに直接置かれる）。
+      ブロックと原点対称の (0, +0.1)。
+    -->
+    <model name="green_target">
+      <static>true</static>
+      <pose>0 0.1 1.016 0 0 0</pose>
+      <link name="link">
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.08 0.08 0.002</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0 1 0 1</ambient>
+            <diffuse>0 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!--
+      俯瞰カメラ（学習・推論の画像入力 observation.images.top）。
+      テーブル天板の 0.6m 上から真下を向く（pitch=90deg）。画像の上側がロボットの前方(+x)。
+      topic を image_raw にしておくと sim.launch.py の bridge が /image_raw に中継してくれる。
+      fps 10 のデータセットに合わせて update_rate=10、VLM 入力用に 256x256 と小さめにする。
+    -->
+    <model name="top_camera">
+      <static>true</static>
+      <pose>0 0 1.615 0 1.5708 0</pose>
+      <link name="link">
+        <sensor name="camera" type="camera">
+          <update_rate>10</update_rate>
+          <always_on>true</always_on>
+          <topic>image_raw</topic>
+          <camera name="camera">
+            <horizontal_fov>1.047</horizontal_fov>
+            <image>
+              <width>256</width>
+              <height>256</height>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>10.0</far>
+            </clip>
+          </camera>
+        </sensor>
+      </link>
+    </model>
+
+  </world>
+</sdf>

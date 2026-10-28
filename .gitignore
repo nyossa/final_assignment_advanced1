@@ -1,0 +1,13 @@
+data/
+checkpoints/
+*.zip
+# *.mp4
+*.mov
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+.pixi/
+__pycache__/
+.DS_Store
+video/
+report/

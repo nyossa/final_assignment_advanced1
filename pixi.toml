@@ -1,0 +1,92 @@
+# ==============================================================
+# pixi 設定（Python 環境とタスク）
+#   環境は 2 つに分ける（バージョン制約が両立しないため）:
+#     convert … rosbag → LeRobotDataset 変換。LeRobot v0.6.0 は Python 3.12 以上が必要。
+#               Colab の学習と同じ版にしてデータセット形式をそろえる。Mac を汚さないためコンテナ内で実行する。
+#     infer   … 推論ノード。コンテナの ROS2 Humble（apt 版）の rclpy が Python 3.10 用なので 3.10 にする。
+#               講義の pai_training と同じく、ROS を source してから pixi の Python で動かす。
+#   ROS2 自体（ros2 launch / colcon / ros2 bag）はコンテナに apt で入っているものを使う。
+# ==============================================================
+[workspace]
+name = "crane_pp"
+channels = ["conda-forge"]
+platforms = ["osx-arm64", "linux-64"]
+
+# 全環境共通: .claude/hooks/format-on-edit.sh が pixi run ruff で整形・lint する
+[dependencies]
+ruff = "*"
+
+# --------------------------------------------------------------
+# ROS2 のタスク（コンテナ内の ~/work で実行する）
+#   pixi の task は source が使えないので bash -c で ROS の環境を読み込んでから実行する
+# --------------------------------------------------------------
+[tasks]
+# 自作パッケージ crane_pp をビルド（--symlink-install で Python の変更時に再ビルド不要）
+build = "bash -c 'source /opt/ros/humble/setup.bash && cd ros2_ws && colcon build --symlink-install'"
+# Gazebo + RViz を起動（ブロック・置き場・俯瞰カメラ入りの world）
+sim = "bash -c 'source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash && ros2 launch crane_pp sim.launch.py'"
+# デモを 1 回だけ流す（記録なし。ウェイポイントの調整用）
+demo = "bash -c 'source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash && ros2 run crane_pp demo'"
+# デモ 25 エピソードを data/raw/ep0〜ep24 に記録する（1 エピソード = 1 bag）
+#   記録開始 → 3 秒待つ → デモを流す → 終わったら記録を Ctrl+C と同じ SIGINT で止める、を繰り返す
+#   記録するトピックは config/sim.yaml の 4 トピック（state・アーム指令・グリッパ指令・画像）
+record = '''bash -c 'source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash && for i in $(seq 0 24); do ros2 bag record -o data/raw/ep$i /joint_states /crane_plus_arm_controller/joint_trajectory /crane_plus_gripper_controller/joint_trajectory /image_raw & sleep 3; ros2 run crane_pp demo; kill -INT $!; wait $!; done' '''
+
+# --------------------------------------------------------------
+# 変換用の環境（LeRobot v0.6.0）
+# --------------------------------------------------------------
+[feature.convert.dependencies]
+python = "3.12.*"
+ffmpeg = "7.*"  # LeRobot の動画（mp4）のエンコード・デコード用
+
+[feature.convert.pypi-dependencies]
+# [dataset]: LeRobotDataset の読み書き（datasets・動画のエンコード等）。v0.6.0 では本体と別の追加依存になっている
+lerobot = { version = "==0.6.0", extras = ["dataset"] }
+rosbags = ">=0.10"  # ROS が無くても rosbag2 を読めるライブラリ（講義の pai_training と同じ）
+pyyaml = "*"
+
+[feature.convert.tasks]
+# data/raw/ の rosbag を data/interim/crane_pp に LeRobotDataset として変換する
+convert = "python scripts/rosbag2lerobot.py"
+# Colab にアップロードするため、データセットを zip にまとめる（zip コマンドが無い環境でも動くよう Python 標準の zipfile を使う）
+zip-dataset = "cd data/interim && python -m zipfile -c ../../crane_pp_dataset.zip crane_pp"
+# 画面収録（video/raw.mov）を 2 倍速の mp4（video/pick_place_2x.mp4）にする。音声は捨てる（-an）
+#   select: 収録中に関係ない画面（別のウィンドウ）が映った raw.mov の 1:27〜1:32（87〜92 秒）を捨てる
+#   setpts: 捨てた区間より後ろを 5 秒前に詰めてから、表示時刻を半分にして 2 倍速にする
+#   scale=1920:-2: 横幅 1920 に縮小（Mac の画面収録は大きすぎるため。-2 で高さを偶数にそろえる）
+#   drawtext: 上部中央に赤字で「2倍速再生」と入れる（課題要件: 倍速なら動画内か概要欄に明記）。
+#             フォントはコンテナに入っている日本語フォント（Noto Sans CJK Bold）。読みやすいよう白い半透明の帯を敷く
+#   -r 30: 出力を 30fps にそろえる / -pix_fmt yuv420p: YouTube などで再生できる色形式にする
+video = '''ffmpeg -y -i video/raw.mov -filter:v "select='not(between(t,87,92))',setpts='0.5*if(gt(T,92),PTS-5/TB,PTS)',scale=1920:-2,drawtext=fontfile=/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc:text='2倍速再生':fontcolor=red:fontsize=h/14:x=(w-text_w)/2:y=h/30:box=1:boxcolor=white@0.7:boxborderw=12" -r 30 -an -pix_fmt yuv420p video/pick_place_2x.mp4'''
+
+# --------------------------------------------------------------
+# 推論用の環境（コンテナ = linux-64 のみ）
+# --------------------------------------------------------------
+[feature.infer]
+platforms = ["linux-64"]
+
+[feature.infer.dependencies]
+python = "3.10.*"
+pytorch-cpu = "*"  # Mac のコンテナには GPU が無いので CPU 版
+torchvision = "*"  # transformers 5 系の SmolVLM2 画像前処理が使う（無いと Unrecognized image processor になる）
+numpy = "<2"  # apt 版 ROS2 Humble の Python パッケージは numpy 1.x 前提
+pillow = "*"
+pyyaml = "*"
+
+[feature.infer.pypi-dependencies]
+transformers = ">=5.4,<5.6"  # Colab の学習（lerobot[smolvla]==0.6.0）と同じ範囲にして SmolVLM2 の挙動をそろえる
+num2words = "*"  # SmolVLM2 の processor が使う
+regex = ">=2025.10.22"  # transformers 5 系が要求する版（古いと import 時に ImportError になる）
+
+# コンテナのユーザー領域（~/.local）に入っている古いパッケージを読まない（講義の pai_training と同じ設定）
+[feature.infer.activation.env]
+PYTHONNOUSERSITE = "1"
+
+[feature.infer.tasks]
+# 学習済みポリシーで推論して Gazebo のロボットを動かす（sim を起動した状態で実行）
+#   PYTHONPATH に足すのは、プロジェクト直下の model.py と、crane_pp パッケージ（demo.py の reset_block など）を import するため
+infer = "bash -c 'source /opt/ros/humble/setup.bash && source ros2_ws/install/setup.bash && PYTHONPATH=.:ros2_ws/src/crane_pp:$PYTHONPATH python ros2_ws/src/crane_pp/crane_pp/infer.py'"
+
+[environments]
+convert = ["convert"]
+infer = ["infer"]
