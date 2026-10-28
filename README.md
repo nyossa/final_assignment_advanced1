@@ -1,5 +1,3 @@
-
-https://github.com/user-attachments/assets/7fa15291-b541-494b-9152-e41de91ebe9c
 # final_assignment_advanced1
 Physical AI応用講座１の最終課題用レポジトリ
 
