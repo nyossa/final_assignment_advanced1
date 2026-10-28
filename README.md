@@ -4,7 +4,7 @@ Physical AI応用講座１の最終課題用レポジトリ
 Gazebo 上のロボットアーム **CRANE+ V2** に、自作の **SmolVLA（Vision-Language-Action, Flow Matching）** ポリシーで
 「赤いブロックを掴んで、緑の置き場に置く」タスクを実行させる。
 
-https://github.com/user-attachments/assets/966af39a-3ee4-4eee-9952-6066dc07b97f
+https://github.com/user-attachments/assets/7f5a103c-46f3-4c21-af7e-dbd7435b5b3c
 
 - 動作の様子: `video/pick_place_2x.mp4`（2 倍速・1 分 40 秒。ポリシーの推論だけで動かしている）
 
