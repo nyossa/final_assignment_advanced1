@@ -19,7 +19,7 @@ setup(
     install_requires=['setuptools'],
     zip_safe=True,
     maintainer='nyossa',
-    maintainer_email='37301982+nyossa@users.noreply.github.com',
+    maintainer_email='nyossa@example.com',
     description='CRANE+ V2 pick and place with SmolVLA (Flow Matching) on Gazebo',
     license='Apache-2.0',
     entry_points={

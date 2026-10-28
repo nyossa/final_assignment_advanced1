@@ -12,7 +12,6 @@ name = "crane_pp"
 channels = ["conda-forge"]
 platforms = ["osx-arm64", "linux-64"]
 
-# 全環境共通: .claude/hooks/format-on-edit.sh が pixi run ruff で整形・lint する
 [dependencies]
 ruff = "*"
 

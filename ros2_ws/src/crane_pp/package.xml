@@ -5,7 +5,7 @@
   <name>crane_pp</name>
   <version>0.0.1</version>
   <description>CRANE+ V2 pick and place with SmolVLA (Flow Matching) on Gazebo</description>
-  <maintainer email="37301982+nyossa@users.noreply.github.com">nyossa</maintainer>
+  <maintainer email="nyossa@example.com">nyossa</maintainer>
   <license>Apache-2.0</license>
 
   <!-- ノード（demo.py / infer.py）が使うメッセージ -->

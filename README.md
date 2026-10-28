@@ -55,7 +55,6 @@ https://github.com/user-attachments/assets/966af39a-3ee4-4eee-9952-6066dc07b97f
 2. 最新の俯瞰画像・関節角・タスク文から、SmolVLA で 10 ステップ分の関節角を推論する（Euler 法 10 回）
 3. 10 ステップを 1 本の軌道としてアームとグリッパのコントローラに送り、実行し終わったら 2 に戻る
 
-デモ収集と推論で、データがどのトピックを通って流れるかは、末尾の「備考」にある「ROS 2 の仕組み（Gazebo・RViz・トピック）」を参照。
 
 ## ディレクトリ構成
 `*` は git 管理外（実行中に作られるもの・大きいもの）。
@@ -100,9 +99,6 @@ https://github.com/user-attachments/assets/966af39a-3ee4-4eee-9952-6066dc07b97f
 ├── video/  *
 │   ├── raw.mov                     # Mac の画面収録（元動画）
 │   └── pick_place_2x.mp4           # 提出動画（pixi run video で作る 2 倍速版）
-├── report/  *
-│   ├── report.html                 # レポートの原稿
-│   └── report.pdf                  # 提出用レポート（report.html を Chrome で PDF にしたもの）
 ├── __pycache__/  *                 # model.py を import したときに Python が作るキャッシュ
 └── .pixi/  *                       # pixi が作る Python 環境の実体
 ```
@@ -196,7 +192,7 @@ pixi run zip-dataset  # Colab にアップロードする crane_pp_dataset.zip �
 pixi run infer                         # 学習済みポリシーでアームを動かす
 docker exec crane pkill -f infer.py    # 止めるとき
 ```
-1 回の推論に約 9 秒かかるため、アームは「1 秒動いて約 9 秒止まる」を繰り返す。約 4 分でブロックを置き場に置く。
+1 回の推論に約 9 秒かかるため、アームは「1 秒動いて約 9 秒止まる」を繰り返す。約 220 秒（推論 26 回）でブロックを置き場に置く。
 
 ### 6. 動画を作る
 Mac の画面収録（Command + Shift + 5）で noVNC の画面を撮り、`video/raw.mov` に置いてから:
