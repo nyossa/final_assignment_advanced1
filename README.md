@@ -7,7 +7,6 @@ Gazebo 上のロボットアーム **CRANE+ V2** に、自作の **SmolVLA（Vis
 https://github.com/user-attachments/assets/966af39a-3ee4-4eee-9952-6066dc07b97f
 
 - 動作の様子: `video/pick_place_2x.mp4`（2 倍速・1 分 40 秒。ポリシーの推論だけで動かしている）
-- レポート: `report/report.pdf`（原稿は `report/report.html`）
 
 ## 目次
 - [タスク](#タスク)
